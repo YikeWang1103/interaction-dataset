@@ -148,6 +148,7 @@ if __name__ == "__main__":
     print("Loading tracks...")
     track_dictionary = None
     pedestrian_dictionary = None
+    print(track_file_name)
     if args.load_mode == 'both':
         track_dictionary = dataset_reader.read_tracks(track_file_name)
         if flag_ped:
