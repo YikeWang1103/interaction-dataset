@@ -20,7 +20,8 @@ DataFolder = "../../dataset/INTERACTION-Dataset-DR-v1_1/recorded_trackfiles/"
 targetFile = "../../dataset/INTERACTION-Dataset-DR-v1_1/recorded_trackfiles/DR_USA_Intersection_EP0/vehicle_tracks_000.csv"
 
 # trackCandidate = [12,13]
-trackCandidate = [12]
+# trackCandidate = [12]
+trackCandidate = [13]
 particleNumber = 10
 
 def determineLanelets(basicPoint2d, laneletMap, numOfCandidates=10):
@@ -59,11 +60,6 @@ def determineRoutes(particles,laneletMap):
 def trajectoryPredictor(agents,particles,laneletMap):
     trajectory = []
     route_candidates = determineRoutes(particles,laneletMap)
-
-    print("route candidate IDs are ")
-    for route_ID in range(len(route_candidates)):
-        print(route_candidates[route_ID].id)
-
     
 
 
@@ -82,20 +78,35 @@ def getLaneletSuccessor(agents,laneletMap,timeStamp):
         laneletCandidate = determineLanelets(agentPos, laneletMap)
         successor = []
         for candidateID in range(len(laneletCandidate)):
-            print("lanelet Candidate ID = ", laneletCandidate[candidateID].id)
             successor.append(graph.following(laneletCandidate[candidateID]))
+            for successorID in range(len(graph.following(laneletCandidate[candidateID]))):
+                print("Agent ID = ", agents[agentID].trackID, 
+                    "; lanelet Candidate ID = ", laneletCandidate[candidateID].id,
+                    "; lanelet Successor ID = ", graph.following(laneletCandidate[candidateID])[successorID].id)
         laneletSuccessor.append(successor)
 
-
-    for i in range(len(laneletSuccessor)):
-        for j in range(len(laneletSuccessor[i])):
-            for k in range(len(laneletSuccessor[i][j])):
-                print("Lane let Successor = ",laneletSuccessor[i][j][k].id)
-
     return laneletSuccessor
+
+def squeezeLaneletSuccessor(laneletSuccessors):
+    squeezedLaneletSuccessor = []
+
+    for agentID in range(len(laneletSuccessors)):
+        tempLaneletSuccessor = []
+        for laneletID in range(len(laneletSuccessors[agentID])):
+            tempLaneletSuccessor.append(laneletSuccessors[agentID][laneletID])
             
+        squeezedLaneletSuccessor.append(tempLaneletSuccessor)
+
+    for agentID in range(len(squeezedLaneletSuccessor)):
+        for successorID in range(len(squeezedLaneletSuccessor[agentID])):
+            print("Lanelet successor ID = ", squeezedLaneletSuccessor[agentID][successorID].id)
+
+    return squeezedLaneletSuccessor
+
+
 def createBayesianNetwork(agents,laneletMap,timeStamp):
     laneletSuccessors = getLaneletSuccessor(agents,laneletMap,timeStamp)
+    squeezedLaneletSuccessor = squeezeLaneletSuccessor(laneletSuccessors)
 
 
     network = []
@@ -126,15 +137,15 @@ if __name__ == "__main__":
 
 
     # trajectory prediction of track candidates
-    timeStamp = 60
+    timeStamp = 100
     particles = addParticles(agents,particleNumber,timeStamp)
     bayesianNetowrk = createBayesianNetwork(agents,laneletMap,timeStamp)
     agentsTrajectory = trajectoryPredictor(agents,particles,laneletMap)
 
-    for agentID in range(len(particles)):
-        print("Agent ", agentID, ":")
-        for particleID in range(len(particles[agentID])):
-            print("Particle: x = ",particles[agentID][particleID].x, ", y = ",particles[agentID][particleID].y)
+    # for agentID in range(len(particles)):
+    #     print("Agent ", agentID, ":")
+    #     for particleID in range(len(particles[agentID])):
+    #         print("Particle: x = ",particles[agentID][particleID].x, ", y = ",particles[agentID][particleID].y)
             
 
     # plot the scenarios
