@@ -1,3 +1,5 @@
+from math import cos,sin,pi
+
 class Track:
     trackID = 0
     agentType = "Unknown"
@@ -25,6 +27,10 @@ class Track:
         self.vx = []
         self.vy = []
         self.heading = []
+        self.longitudinal_vel = []
+        self.lateral_vel = []
+        self.angular_vel = []
+        self.radius = []
         
         for motionState in trackData.motion_states:
             self.x.append(trackData.motion_states[motionState].x)
@@ -33,6 +39,23 @@ class Track:
             self.vy.append(trackData.motion_states[motionState].vy)
             self.heading.append(trackData.motion_states[motionState].psi_rad)
             self.timeStamps.append(trackData.motion_states[motionState].time_stamp_ms)
+
+        for timeStamp in range(len(self.timeStamps)):
+            self.longitudinal_vel.append(self.vx[timeStamp]*cos(self.heading[timeStamp])+self.vy[timeStamp]*sin(self.heading[timeStamp]))
+            self.lateral_vel.append(self.vy[timeStamp]*cos(self.heading[timeStamp])-self.vx[timeStamp]*sin(self.heading[timeStamp]))
+            self.angular_vel.append(self.heading[min(timeStamp+1,len(self.timeStamps)-1)]-self.heading[timeStamp])
+            if self.angular_vel[timeStamp] == 0:
+                self.radius.append(8000)
+            else:
+                if self.longitudinal_vel[timeStamp] == 0:
+                    if timeStamp == 0:
+                        self.radius.append(8000)
+                    else:
+                        self.radius.append(self.radius[timeStamp-1])
+                else:
+                    self.radius.append(min(8000,self.longitudinal_vel[timeStamp]/self.angular_vel[timeStamp]))
+           
+
    
     def displayBasic(self):
         print("TrackID = ", self.trackID,", AgentType = ", self.agentType,
@@ -45,7 +68,11 @@ class Track:
                                             " y = " , self.y[timeStamp] , 
                                             " vx = " , self.vx[timeStamp] , 
                                             " vy = " , self.vy[timeStamp] ,
-                                            " heading = " , self.heading[timeStamp])
+                                            " heading = " , self.heading[timeStamp],
+                                            " longitudinal_vel = ", self.longitudinal_vel[timeStamp],
+                                            " lateral_vel = ", self.lateral_vel[timeStamp],
+                                            " angular_vel = ", self.angular_vel[timeStamp],
+                                            " radius = ", self.radius[timeStamp])
 
     def show(self):
         self.displayBasic()

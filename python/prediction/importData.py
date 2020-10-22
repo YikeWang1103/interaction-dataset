@@ -29,6 +29,7 @@ def importTrackData(fileName):
 
     for key in data_dict.keys():
         trackData = Track(data_dict[key])
+        # trackData.show()
         tracks.append(trackData)
     
     return tracks

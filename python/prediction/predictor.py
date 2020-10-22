@@ -13,6 +13,7 @@ from importData import importTrackData,importMapData
 from plotter import plotParticle,plotAgents,plotScenario
 from particle import Particle, addParticles
 import pgmpy as bayesianNetwork
+import math
 
 
 mapFolder = "../../dataset/INTERACTION-Dataset-DR-v1_1/maps/"
@@ -88,25 +89,60 @@ def getLaneletSuccessor(agents,laneletMap,timeStamp):
     return laneletSuccessor
 
 def squeezeLaneletSuccessor(laneletSuccessors):
-    squeezedLaneletSuccessor = []
+    squeezedLaneletSuccessors = []
 
     for agentID in range(len(laneletSuccessors)):
         tempLaneletSuccessor = []
         for laneletID in range(len(laneletSuccessors[agentID])):
-            tempLaneletSuccessor.append(laneletSuccessors[agentID][laneletID])
+            for successorID in range(len(laneletSuccessors[agentID][laneletID])):
+                tempLaneletSuccessor.append(laneletSuccessors[agentID][laneletID][successorID])
+                tempLaneletSuccessor = list(set(tempLaneletSuccessor))
             
-        squeezedLaneletSuccessor.append(tempLaneletSuccessor)
+        squeezedLaneletSuccessors.append(tempLaneletSuccessor)
 
-    for agentID in range(len(squeezedLaneletSuccessor)):
-        for successorID in range(len(squeezedLaneletSuccessor[agentID])):
-            print("Lanelet successor ID = ", squeezedLaneletSuccessor[agentID][successorID].id)
+    # for agentID in range(len(squeezedLaneletSuccessor)):
+    #     for successorID in range(len(squeezedLaneletSuccessor[agentID])):
+    #             print("Lanelet successor ID = ", squeezedLaneletSuccessor[agentID][successorID])
 
-    return squeezedLaneletSuccessor
+    return squeezedLaneletSuccessors
+
+def calculateRouteIntentionProb(agents,squeezedLaneletSuccessors,timeStamp):
+    routeIntentionProb = []
+
+    for agentID in range(len(squeezedLaneletSuccessors)):
+            routeIntention = []
+            radius_list = []
+            agentRadius = agents[agentID].radius[timeStamp]
+            # agentRadius = 800
+            print("AgentRadius = ",agentRadius)
+            
+            for successorID in range(len(squeezedLaneletSuccessors[agentID])):
+                targetLanelet = squeezedLaneletSuccessors[agentID][successorID]
+                radius_list.append(1/float(targetLanelet.attributes["curvature"]))
+            
+            print("radius_list = ",radius_list)
+            numSuccessor = len(radius_list)
+            radius_diff = [math.log(abs(agentRadius-i),10)**2 for i in radius_list] 
+            dem = sum(radius_diff)
+
+            iter_list = radius_diff + radius_diff[0:-1]
+            print("radius_diff = ", radius_diff)
+
+            for iter in range(numSuccessor):
+                routeIntention.append(1-iter_list[iter]/dem)
+
+            print("routeIntention = ", routeIntention)
+
+            routeIntentionProb.append(routeIntention)
+
+    return routeIntentionProb
 
 
 def createBayesianNetwork(agents,laneletMap,timeStamp):
     laneletSuccessors = getLaneletSuccessor(agents,laneletMap,timeStamp)
-    squeezedLaneletSuccessor = squeezeLaneletSuccessor(laneletSuccessors)
+    squeezedLaneletSuccessors = squeezeLaneletSuccessor(laneletSuccessors)
+    routeIntentionProb = calculateRouteIntentionProb(agents,squeezedLaneletSuccessors,timeStamp)
+
 
 
     network = []
@@ -131,16 +167,18 @@ if __name__ == "__main__":
     # extract map information
     mapDataPath = mapFolder + scenarioFolder + ".osm" 
     # print("mapDataPath = ", mapDataPath)
-    lat_origin = 0.  
-    lon_origin = 0. 
+    lat_origin = 0.
+    lon_origin = 0.
     laneletMap = importMapData(mapDataPath, lat_origin, lon_origin)
 
 
     # trajectory prediction of track candidates
-    timeStamp = 100
-    particles = addParticles(agents,particleNumber,timeStamp)
-    bayesianNetowrk = createBayesianNetwork(agents,laneletMap,timeStamp)
-    agentsTrajectory = trajectoryPredictor(agents,particles,laneletMap)
+    # timeStamp = 60
+    for timeStamp in range(136):
+    # particles = addParticles(agents,particleNumber,timeStamp)
+    # agentsTrajectory = trajectoryPredictor(agents,particles,laneletMap)
+        bayesianNetowrk = createBayesianNetwork(agents,laneletMap,timeStamp)
+
 
     # for agentID in range(len(particles)):
     #     print("Agent ", agentID, ":")
@@ -149,4 +187,4 @@ if __name__ == "__main__":
             
 
     # plot the scenarios
-    plotScenario(laneletMap,agents,particles,timeStamp)
+    # plotScenario(laneletMap,agents,particles,timeStamp)
